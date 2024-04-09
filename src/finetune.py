@@ -44,16 +44,21 @@ def train(model, args):
     state_path = os.path.join(args.out_dir, "state.pt")
     base_model = os.path.join(args.alignment.base_model, "state.pt")
 
+    #print("HELLO")
     #check if we are already in the proccess of finetuning if not load the base model
     if os.path.exists(state_path):
+        
         state = torch.load(state_path)
         model.load_state_dict(state["model_state_dict"])
         optimizer.load_state_dict(state["optimizer_state_dict"])
         starting_step = state["train_step"]
         for i in range(state["train_step"] + 1):
             curriculum.update()
+            
     elif os.path.exists(base_model):
         state = torch.load(base_model)
+
+
         model.load_state_dict(state["model_state_dict"])
         optimizer.load_state_dict(state["optimizer_state_dict"])
         starting_step = state["train_step"]

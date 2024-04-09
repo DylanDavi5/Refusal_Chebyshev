@@ -36,7 +36,7 @@ training:
             inc: 0
             interval: 500001
 
-out_dir: ../models/test_clamp
+out_dir: ../models/test #_clamp
 
 
 wandb:

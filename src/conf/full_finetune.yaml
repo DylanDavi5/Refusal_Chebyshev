@@ -3,31 +3,52 @@ inherit:
     - wandb.yaml
 
 model:
+    #family: gpt2
+    #n_dims: 1
+    #n_embd: 512
+    #n_head: 16
+    #n_layer: 24
+    #n_positions: 41
     n_dims: 1
     n_positions: 41
 
 training:
-    resume_id: 0c2fcb78-9b3e-4e82-bf45-c266e6e5d793
+    resume_id: go_time
     
     task: clamped_chebyshev
     data: uniform
     # task_kwargs: {"basis_dim": 11, "different_degrees": True, "lowest_degree": 1, "highest_degree": 11}
-    #task_kwargs: {"basis_dim": 11, "different_degrees": True, "lowest_degree": 1}
-    task_kwargs: {}
+    task_kwargs: {"basis_dim": 11, "different_degrees": True, "lowest_degree": 1}
+    
 
     batch_size: 64
     learning_rate: 0.00005
     save_every_steps: 1000
-    keep_every_steps: 100000
+    keep_every_steps: 2000 #100000
     train_steps: 5000001
+    curriculum:
+        dims:
+            start: 1
+            end: 1
+            inc: 1
+            interval: 2000
+        points:
+            start: 5
+            end: 41
+            inc: 1
+            interval: 1000
+        deg: 
+            start: 11
+            end: 11
+            inc: 0
+            interval: 500001
 
 
 out_dir: ../models/finetune
 
 
 alignment:
-    base_model: ../models/kernel_linear_regression/41aaaae1-d08d-4d35-ac04-9ec1bae355d7
-
+    base_model: ../models/test/5ea2b0cc-ab96-4844-be2f-21589e2283fc #../models/model1
 
 wandb:
     name: "chebyshev_linear_regression_toy"
