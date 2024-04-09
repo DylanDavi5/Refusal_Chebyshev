@@ -1,0 +1,33 @@
+inherit: 
+    - models/standard.yaml
+    - wandb.yaml
+
+model:
+    n_dims: 1
+    n_positions: 41
+
+training:
+    resume_id: 0c2fcb78-9b3e-4e82-bf45-c266e6e5d793
+    
+    task: clamped_chebyshev
+    data: uniform
+    # task_kwargs: {"basis_dim": 11, "different_degrees": True, "lowest_degree": 1, "highest_degree": 11}
+    #task_kwargs: {"basis_dim": 11, "different_degrees": True, "lowest_degree": 1}
+    task_kwargs: {}
+
+    batch_size: 64
+    learning_rate: 0.00005
+    save_every_steps: 1000
+    keep_every_steps: 100000
+    train_steps: 5000001
+
+
+out_dir: ../models/finetune
+
+
+alignment:
+    base_model: ../models/kernel_linear_regression/41aaaae1-d08d-4d35-ac04-9ec1bae355d7
+
+
+wandb:
+    name: "chebyshev_linear_regression_toy"
