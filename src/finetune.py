@@ -1,10 +1,12 @@
 import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '2,3,4,5,6'
 from random import randint
 import uuid
 
 from quinine import QuinineArgumentParser
 from tqdm import tqdm
 import torch
+
 import yaml
 
 from eval import get_run_metrics
@@ -57,8 +59,6 @@ def train(model, args):
             
     elif os.path.exists(base_model):
         state = torch.load(base_model)
-
-
         model.load_state_dict(state["model_state_dict"])
         optimizer.load_state_dict(state["optimizer_state_dict"])
         starting_step = state["train_step"]
@@ -169,6 +169,8 @@ def main(args):
         )
 
     model = build_model(args.model)
+    
+    torch.cuda.set_device(3)
     model.cuda()
     model.train()
 

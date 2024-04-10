@@ -20,11 +20,10 @@ training:
     # task_kwargs: {"basis_dim": 11, "different_degrees": True, "lowest_degree": 1, "highest_degree": 11}
     task_kwargs: {"basis_dim": 11, "different_degrees": True, "lowest_degree": 1}
     
-
     batch_size: 64
     learning_rate: 0.00005
-    save_every_steps: 1000
-    keep_every_steps: 2000 #100000
+    save_every_steps: 50000
+    keep_every_steps: 50000
     train_steps: 5000001
     curriculum:
         dims:
@@ -44,11 +43,11 @@ training:
             interval: 500001
 
 
-out_dir: ../models/finetune
+out_dir: ../models/finetune_hinge
 
 
 alignment:
-    base_model: ../models/test/5ea2b0cc-ab96-4844-be2f-21589e2283fc #../models/model1
+    base_model: /home/riadoshi/alignment/prev/ckpts/ckpt/ #../models/test/5ea2b0cc-ab96-4844-be2f-21589e2283fc #../models/model1
 
 wandb:
     name: "chebyshev_linear_regression_toy"

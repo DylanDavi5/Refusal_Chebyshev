@@ -13,6 +13,16 @@ def squared_error(ys_pred, ys):
 def mean_squared_error(ys_pred, ys):
     return (ys - ys_pred).square().mean()
 
+def thresh_hinge_loss(ys_pred, ys, thresh, high_penalty=100):
+    mse = mean_squared_error(ys_pred, ys)
+    penalties = torch.where(ys_pred > thresh,
+                                mean_squared_error(ys, ys_pred) * high_penalty,
+                                torch.tensor(0.0, device=ys_pred.device))
+    
+    penalties = penalties.mean()
+    
+    total_loss = mse + penalties
+    return total_loss
 
 def accuracy(ys_pred, ys):
     return (ys == ys_pred.sign()).float()
@@ -122,7 +132,7 @@ class LinearRegression(Task):
 class ChebyshevKernelLinearRegression(Task):
     def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, scale=1, basis_dim=1, different_degrees=False, lowest_degree=1, highest_degree=1, curriculum=None):
         """scale: a constant by which to scale the randomly sampled weights."""
-        super(ChebyshevKernelLinearRegression, self).__init__(n_dims, batch_size, pool_dict, seeds)
+        super(ChebyshevKernelLinearRegression, self).__init__(n_dims=n_dims, batch_size=batch_size, pool_dict=pool_dict, seeds=seeds)
         self.basis_dim = basis_dim
         self.curriculum = curriculum
         self.highest_degree = highest_degree
@@ -192,6 +202,14 @@ class ChebyshevKernelLinearRegression(Task):
     
 
 class ClampedChebyshev(ChebyshevKernelLinearRegression):
+    def __init__(self, n_dims, batch_size, pool_dict, thresh=0.5, loss_name='hinge', high_penalty=100, **kwargs):
+        self.thresh = thresh
+        self.high_penalty = high_penalty
+        self.loss_name = loss_name
+
+        super(ClampedChebyshev, self).__init__(n_dims=n_dims, batch_size=batch_size, pool_dict=pool_dict, **kwargs)
+        
+
     def evaluate(self, xs_b, noise=False, separate_noise=False, noise_variance=0.2):
         expanded_basis = torch.zeros(*xs_b.shape[:-1], xs_b.shape[-1]*(self.basis_dim + 1))
         for i in range(self.basis_dim + 1): #we are also adding the constant term
@@ -200,10 +218,8 @@ class ClampedChebyshev(ChebyshevKernelLinearRegression):
         w_b = self.w_b.to(xs_b.device)
         ys_b = (expanded_basis @ w_b)[:, :, 0]
         
-
-
         #limit the outputs
-        ys_b = torch.clamp(ys_b, min=None, max=0.5)
+        ys_b = torch.clamp(ys_b, min=None, max=self.thresh)
         
         if noise and not separate_noise:
             return ys_b + math.sqrt(noise_variance) * torch.randn_like(ys_b)
@@ -214,6 +230,14 @@ class ClampedChebyshev(ChebyshevKernelLinearRegression):
                 return ys_b, torch.zeros_like(ys_b)
             else:
                 return ys_b
+            
+    def clamped_thresh_hinge_loss(self, ys_pred, ys):
+        return thresh_hinge_loss(ys_pred, ys, thresh=self.thresh, high_penalty=self.high_penalty)
+            
+    def get_training_loss(self):
+        return self.clamped_thresh_hinge_loss if self.loss_name == 'hinge' else mean_squared_error
+    
+    
 
 class KernelLinearRegression(LinearRegression):
     def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, scale=1, basis_dim=1): #TODO only supports axis alligned 

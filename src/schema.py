@@ -66,8 +66,8 @@ training_schema = {
 }
 
 wandb_schema = {
-    "project": merge(tstring, default("in-context-training")),
-    "entity": merge(tstring, default("in-context")),
+    "project": merge(tstring, default("alignment")),
+    "entity": merge(tstring, default("rdoshi21")),
     "notes": merge(tstring, default("")),
     "name": merge(tstring, nullable, default(None)),
     "log_every_steps": merge(tinteger, default(10)),
