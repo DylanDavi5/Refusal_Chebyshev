@@ -43,7 +43,7 @@ def main():
         },
         "training":{
             #"resume_id": "go_time",
-            "task": "clamped_chebyshev",
+            "task": "kernel_linear_regression",
             "data": "uniform",
             "task_kwargs": {"basis_dim": 11, "different_degrees": True, "lowest_degree": 1},
             "batch_size": 64,
