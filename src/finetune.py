@@ -1,5 +1,5 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '2,3,4,5,6'
+#os.environ['CUDA_VISIBLE_DEVICES'] = '2,3,4,5,6'
 from random import randint
 import uuid
 
@@ -170,7 +170,7 @@ def main(args):
 
     model = build_model(args.model)
     
-    torch.cuda.set_device(3)
+    #torch.cuda.set_device(3)
     model.cuda()
     model.train()
 

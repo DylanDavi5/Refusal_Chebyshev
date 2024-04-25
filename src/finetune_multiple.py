@@ -3,11 +3,8 @@ import subprocess
 import yaml
 import uuid
 
-def create_config_file(base_config, variation, index, subdirectory='conf/finetune'):
+def create_config_file(base_config, variation, index, subdirectory='conf/finetune_multiple'):
     
-    run_id = str(uuid.uuid4())
-    subdirectory = os.path.join(subdirectory, run_id)
-
     # Ensure the subdirectory exists
     os.makedirs(subdirectory, exist_ok=True)
     
@@ -16,9 +13,18 @@ def create_config_file(base_config, variation, index, subdirectory='conf/finetun
     
     # Update the configuration and dump it into the file
     config = base_config.copy()
-    config['training'].update(variation)
+    
+    
+    config['training'].update(variation["training"])
+    config['model'].update(variation["model"])
+    config['alignment'].update(variation["alignment"])
+    
+    
+    #config["out_dir"] = config["out_dir"] + "/model_" + str(index)
     with open(config_filename, 'w') as file:
         yaml.dump(config, file, default_flow_style=False)
+    
+
     return config_filename
     
 
@@ -28,6 +34,8 @@ def run_training(config_filename):
     subprocess.run(command, shell=True)
 
 def main():
+    run_id = str(uuid.uuid4())
+
     # Base configuration settings
     base_config = {
         "model": {
@@ -69,31 +77,82 @@ def main():
                 }
             }
         },
-        "out_dir": "../models/finetune_hinge",
-        "alignment": {
-            "base_model": "/home/riadoshi/alignment/prev/ckpts/ckpt/" 
-        },
+
+        "out_dir": "../models/finetune_multiple", #f"../models/train_multiple/{run_id}"
+
         "wandb":{
-            "name": "chebyshev_linear_regression_toy",
+            "name": "align_multiple",
             "project": "in-context-training",
             "entity": "cs182-poly-reg",
             "notes":"",
             "log_every_steps": 100
+        },
+
+        "alignment":{
+            "base_model": "../models/finetune_multiple"
         }
     }
 
 
     # Variations you want to test
     variations = [
-        {'learning_rate': 0.01},
-        {'learning_rate': 0.001},
-        {'learning_rate': 0.0001},
+        #model large
+        {"model": {
+            "n_embd": 512,
+            "n_layer": 24,
+            "n_head": 16,
+        },
+        "training":{
+            "train_steps": 500000
+        },
+        "alignment":{
+            "base_model": "../models/train_multiple/cedbe4ca-0dba-4e84-87f9-a01bdc5e0122"
+        }
+        },
+
+        #model medium
+        {"model": {
+            "n_embd": 256,
+            "n_layer": 12,
+            "n_head": 8,
+        },
+        "training":{
+            "train_steps": 500000
+        },
+        "alignment":{
+            "base_model": "../models/train_multiple/cedbe4ca-0dba-4e84-87f9-a01bdc5e0122"
+        }
+        },
+
+        #model small
+        {"model": {
+            "n_embd": 128,
+            "n_layer": 6,
+            "n_head": 4,
+        },
+        "training":{
+            "train_steps": 500000
+        },
+        "alignment":{
+            "base_model": "../models/train_multiple/b05b7728-6121-4fca-af23-d2b4cc00b027"
+        }
+        }
+
+        
     ]
+
+
+    
+    location = f"conf/finetune_multiple/{run_id}"
+
 
     # Create and run training for each variation
     for i, variation in enumerate(variations):
-        config_filename = create_config_file(base_config, variation, i)
-        #run_training(config_filename)
+        config_filename = create_config_file(base_config, variation, i, location)
+
+        #print(config_filename)
+
+        run_training(config_filename)
         print(f"Training completed for: {config_filename}")
 
 if __name__ == "__main__":

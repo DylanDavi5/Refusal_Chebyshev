@@ -5,9 +5,9 @@ inherit:
 model:
     family: gpt2
     n_dims: 1
-    n_embd: 512
-    n_head: 16
-    n_layer: 24
+    n_embd: 128
+    n_head: 4
+    n_layer: 6
     n_positions: 41
     #n_dims: 1
     #n_positions: 41
@@ -48,7 +48,7 @@ out_dir: ../models/test
 
 
 alignment:
-    base_model: ../models/test/5ea2b0cc-ab96-4844-be2f-21589e2283fc #../models/model1
+    base_model: ../models/train_multiple/b05b7728-6121-4fca-af23-d2b4cc00b027 #../models/model1
 
 wandb:
     name: "chebyshev_linear_regression_toy"
