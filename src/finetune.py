@@ -1,5 +1,7 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '2,3,4,5,6'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1,2,3,4,5,6,7'
+GPU = 7
+import os
 from random import randint
 import uuid
 
@@ -50,7 +52,7 @@ def train(model, args):
     #check if we are already in the proccess of finetuning if not load the base model
     if os.path.exists(state_path):
         
-        state = torch.load(state_path)
+        state = torch.load(state_path, map_location=f'cuda:{GPU}') #, map_location=lambda storage, loc: storage.cuda(GPU)
         model.load_state_dict(state["model_state_dict"])
         optimizer.load_state_dict(state["optimizer_state_dict"])
         starting_step = state["train_step"]
@@ -58,7 +60,7 @@ def train(model, args):
             curriculum.update()
             
     elif os.path.exists(base_model):
-        state = torch.load(base_model)
+        state = torch.load(base_model, f'cuda:{GPU}') # map_location=lambda storage, loc: storage.cuda(GPU)
         model.load_state_dict(state["model_state_dict"])
         optimizer.load_state_dict(state["optimizer_state_dict"])
         starting_step = state["train_step"]
@@ -68,7 +70,7 @@ def train(model, args):
 
     n_dims = model.n_dims
     bsize = args.training.batch_size
-    data_sampler = get_data_sampler(args.training.data, n_dims=n_dims)
+    data_sampler = get_data_sampler(args.training.data, n_dims=n_dims) # removed fixed_pts = 20
     task_sampler = get_task_sampler(
         args.training.task,
         n_dims,
@@ -170,7 +172,7 @@ def main(args):
 
     model = build_model(args.model)
     
-    torch.cuda.set_device(3)
+    torch.cuda.set_device(GPU)
     model.cuda()
     model.train()
 
@@ -193,7 +195,8 @@ if __name__ == "__main__":
             run_id = str(uuid.uuid4())
 
         out_dir = os.path.join(args.out_dir, run_id)
-        base_model = os.path.join(args.alignment.base_model, "state.pt")
+        # base_model = os.path.join(args.alignment.base_model, "state.pt")
+        base_model = '/home/riadoshi/alignment/Alignment/models/train_multiple/0206e01d-0100-47d8-8086-1495d6443a55/state.pt'
         #check the base model exists or we already have a model we are in the process of finetuning
         assert os.path.exists(base_model) or os.path.exists(out_dir)
 

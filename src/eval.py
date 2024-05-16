@@ -34,11 +34,7 @@ def get_model_from_run(run_path, step=-1, only_conf=False):
 
     return model, conf
 
-
-# Functions for evaluation
-
-
-def eval_batch(model, task_sampler, xs, include_noise=True, ground_truth_loss=False, smoothing=0):
+def eval_batch(model, task_sampler, xs, include_noise=False, ground_truth_loss=False, smoothing=0):
     task = task_sampler()
     if torch.cuda.is_available() and model.name.split("_")[0] in ["gpt2", "lstm"]:
         device = "cuda"

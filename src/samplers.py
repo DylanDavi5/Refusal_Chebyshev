@@ -35,12 +35,17 @@ def sample_transformation(eigenvalues, normalize=False):
 
 
 class GaussianSampler(DataSampler):
-    def __init__(self, n_dims, bias=None, scale=None):
+    def __init__(self, n_dims, bias=None, scale=None, fixed_pts=-1):
         super().__init__(n_dims)
         self.bias = bias
         self.scale = scale
 
+        self.fixed_pts=fixed_pts
+
     def sample_xs(self, n_points, b_size, n_dims_truncated=None, seeds=None):
+        if self.fixed_pts > 0:
+            torch.manual_seed(n_points)
+            xs_b = torch.randn(b_size, n_points, self.n_dims)
         if seeds is None:
             xs_b = torch.randn(b_size, n_points, self.n_dims)
         else:

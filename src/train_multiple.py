@@ -35,7 +35,7 @@ def main():
     base_config = {
         "model": {
             "n_dims": 1,
-            "n_positions": 41,
+            "n_positions": 256,
             "family": "gpt2",
             "n_embd": 512,
             "n_layer": 24,
@@ -46,7 +46,7 @@ def main():
             "task": "kernel_linear_regression",
             "data": "uniform",
             "task_kwargs": {"basis_dim": 11, "different_degrees": True, "lowest_degree": 1},
-            "batch_size": 64,
+            "batch_size": 32,
             "learning_rate": 0.00005,
             "save_every_steps": 50000,
             "keep_every_steps": 50000,
@@ -60,7 +60,7 @@ def main():
                 },
                 "points":{
                     "start": 5,
-                    "end": 41,
+                    "end": 256,
                     "inc": 1,
                     "interval": 1000
                 },
@@ -76,10 +76,10 @@ def main():
         "out_dir": "../models/train_multiple", #f"../models/train_multiple/{run_id}"
 
         "wandb":{
-            "name": "train_multiple",
-            "project": "in-context-training",
-            "entity": "cs182-poly-reg",
-            "notes":"",
+            "name": "base_256pts",
+            "project": "alignment",
+            "entity": "rdoshi21",
+            "notes":"", 
             "log_every_steps": 100
         }
     }
@@ -89,24 +89,31 @@ def main():
     variations = [
         #model 1
         {"model": {
-            "n_embd": 256,
-            "n_layer": 12,
-            "n_head": 8,
+            "n_embd": 512,
+            "n_layer": 24,
+            "n_head": 16,
         },
         "training":{
             "train_steps": 500000
         }},
+        #model 1
+        # {"model": {
+        #     "n_embd": 256,
+        #     "n_layer": 12,
+        #     "n_head": 8,
+        # },
+        # "training":{
+        #     "train_steps": 500000
+        # }},
         #model 2
-        {"model": {
-            "n_embd": 128,
-            "n_layer": 6,
-            "n_head": 4,
-        },
-        "training":{
-            "train_steps": 500000
-        }},
-
-        
+        # {"model": {
+        #     "n_embd": 64,
+        #     "n_layer": 4,
+        #     "n_head": 2,
+        # },
+        # "training":{
+        #     "train_steps": 500000
+        # }},
     ]
 
 

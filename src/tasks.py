@@ -173,12 +173,7 @@ class ChebyshevKernelLinearRegression(Task):
         expanded_basis.to(xs_b.device)        
         w_b = self.w_b.to(xs_b.device)
         ys_b = (expanded_basis @ w_b)[:, :, 0]
-        
 
-
-        #TEST
-        #ys_b = torch.clamp(ys_b, min=None, max=0.5)
-        
         if noise and not separate_noise:
             return ys_b + math.sqrt(noise_variance) * torch.randn_like(ys_b)
         elif noise and separate_noise:
