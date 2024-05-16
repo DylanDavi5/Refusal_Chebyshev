@@ -1,6 +1,6 @@
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1,2,3,4,5,6,7'
-GPU = 7
+GPU = 0#7
 import os
 from random import randint
 import uuid
@@ -195,8 +195,8 @@ if __name__ == "__main__":
             run_id = str(uuid.uuid4())
 
         out_dir = os.path.join(args.out_dir, run_id)
-        # base_model = os.path.join(args.alignment.base_model, "state.pt")
-        base_model = '/home/riadoshi/alignment/Alignment/models/train_multiple/0206e01d-0100-47d8-8086-1495d6443a55/state.pt'
+        base_model = os.path.join(args.alignment.base_model, "state.pt")
+        #base_model = '/home/riadoshi/alignment/Alignment/models/train_multiple/0206e01d-0100-47d8-8086-1495d6443a55/state.pt'
         #check the base model exists or we already have a model we are in the process of finetuning
         assert os.path.exists(base_model) or os.path.exists(out_dir)
 
