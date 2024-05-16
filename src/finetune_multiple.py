@@ -3,11 +3,8 @@ import subprocess
 import yaml
 import uuid
 
-def create_config_file(base_config, variation, index, subdirectory='conf/finetune'):
+def create_config_file(base_config, variation, index, subdirectory='conf/finetune_multiple'):
     
-    run_id = str(uuid.uuid4())
-    subdirectory = os.path.join(subdirectory, run_id)
-
     # Ensure the subdirectory exists
     os.makedirs(subdirectory, exist_ok=True)
     
@@ -21,6 +18,8 @@ def create_config_file(base_config, variation, index, subdirectory='conf/finetun
     config['alignment'].update(variation['alignment'])
     with open(config_filename, 'w') as file:
         yaml.dump(config, file, default_flow_style=False)
+    
+
     return config_filename
     
 
@@ -30,6 +29,8 @@ def run_training(config_filename):
     subprocess.run(command, shell=True)
 
 def main():
+    run_id = str(uuid.uuid4())
+
     # Base configuration settings
     base_config = {
         "model": {
@@ -81,6 +82,10 @@ def main():
             "entity": "rdoshi21",
             "notes":"", 
             "log_every_steps": 100
+        },
+
+        "alignment":{
+            "base_model": "../models/finetune_multiple"
         }
     }
 
@@ -124,6 +129,11 @@ def main():
         #     "base_model": "/home/riadoshi/alignment/Alignment/models/train_multiple/5d3b26ff-427f-40a2-9e2e-14434bd9b277" 
         # }},
     ]
+
+
+    
+    location = f"conf/finetune_multiple/{run_id}"
+
 
     # Create and run training for each variation
     for i, variation in enumerate(variations):
