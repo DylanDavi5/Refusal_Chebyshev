@@ -130,7 +130,7 @@ class LinearRegression(Task):
         return mean_squared_error
 
 class ChebyshevKernelLinearRegression(Task):
-    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, scale=1, basis_dim=1, different_degrees=False, lowest_degree=1, highest_degree=1, curriculum=None):
+    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, scale=1, basis_dim=1, different_degrees=False, lowest_degree=1, highest_degree=11, curriculum=None):
         """scale: a constant by which to scale the randomly sampled weights."""
         super(ChebyshevKernelLinearRegression, self).__init__(n_dims=n_dims, batch_size=batch_size, pool_dict=pool_dict, seeds=seeds)
         self.basis_dim = basis_dim
@@ -197,7 +197,7 @@ class ChebyshevKernelLinearRegression(Task):
     
 
 class ClampedChebyshev(ChebyshevKernelLinearRegression):
-    def __init__(self, n_dims, batch_size, pool_dict, thresh=0.5, loss_name='hinge', high_penalty=100, **kwargs):
+    def __init__(self, n_dims, batch_size, pool_dict, thresh=0.5, loss_name='mse', high_penalty=100, **kwargs):
         self.thresh = thresh
         self.high_penalty = high_penalty
         self.loss_name = loss_name

@@ -306,7 +306,7 @@ class ChebyshevKernelLeastSquaresModelWithRidge(LeastSquaresModel):
         self.name = f"ridge_chebyshev_{basis_dim}_driver={driver}"
         self.random = random
         self.ridge = ridge
-        print(self.ridge)
+        # print(self.ridge)
     
     def __call__(self, xs, ys, inds=None):
         expanded_basis = torch.zeros(*xs.shape[:-1], xs.shape[-1]*(self.basis_dim + 1))
