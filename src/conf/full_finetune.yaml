@@ -5,17 +5,17 @@ inherit:
 model:
     #family: gpt2
     #n_dims: 1
-    #n_embd: 512
-    #n_head: 16
-    #n_layer: 24
+    n_embd: 128
+    n_head: 4
+    n_layer: 6
     #n_positions: 41
     n_dims: 1
     n_positions: 41
 
 training:
-    resume_id: go_time
+    #resume_id: go_time
     
-    task: clamped_chebyshev
+    task: unclamped_chebyshev_clamped_loss #clamped_chebyshev
     data: uniform
     # task_kwargs: {"basis_dim": 11, "different_degrees": True, "lowest_degree": 1, "highest_degree": 11}
     task_kwargs: {"basis_dim": 11, "different_degrees": True, "lowest_degree": 1}
@@ -47,7 +47,9 @@ out_dir: ../models/finetune_hinge
 
 
 alignment:
-    base_model: /home/riadoshi/alignment/prev/ckpts/ckpt/ #../models/test/5ea2b0cc-ab96-4844-be2f-21589e2283fc #../models/model1
+    base_model: ../models/train_multiple/b05b7728-6121-4fca-af23-d2b4cc00b027 #/home/riadoshi/alignment/prev/ckpts/ckpt/ #../models/test/5ea2b0cc-ab96-4844-be2f-21589e2283fc #../models/model1
 
 wandb:
     name: "chebyshev_linear_regression_toy"
+    #project: test
+    #entity: dyly-davis

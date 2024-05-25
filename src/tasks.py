@@ -13,7 +13,12 @@ def squared_error(ys_pred, ys):
 def mean_squared_error(ys_pred, ys):
     return (ys - ys_pred).square().mean()
 
+def mean_squared_error_clamped(ys_pred, ys, thresh):
+    ys = torch.clamp(ys, min=None, max=thresh)
+    return mean_squared_error(ys_pred, ys)
+
 def thresh_hinge_loss(ys_pred, ys, thresh, high_penalty=100):
+    ys = torch.clamp(ys, min=None, max=thresh)
     mse = mean_squared_error(ys_pred, ys)
     penalties = torch.where(ys_pred > thresh,
                                 mean_squared_error(ys, ys_pred) * high_penalty,
@@ -76,6 +81,7 @@ def get_task_sampler(
         "kernel_linear_regression": ChebyshevKernelLinearRegression,
         "chebyshev_kernel_linear_regression": ChebyshevKernelLinearRegression,
         "clamped_chebyshev":ClampedChebyshev,
+        "unclamped_chebyshev_clamped_loss":ChebyshevLossClamped,
     }
     if task_name in task_names_to_classes:
         task_cls = task_names_to_classes[task_name]
@@ -232,6 +238,30 @@ class ClampedChebyshev(ChebyshevKernelLinearRegression):
     def get_training_loss(self):
         return self.clamped_thresh_hinge_loss if self.loss_name == 'hinge' else mean_squared_error
     
+#generate normalchebyshev points for the context but evaluate the loss on a clamped chebyshev
+class ChebyshevLossClamped(ChebyshevKernelLinearRegression):
+    def __init__(self, n_dims, batch_size, pool_dict, thresh=0.5, loss_name='mean', high_penalty=100, **kwargs):
+        super(ChebyshevLossClamped, self).__init__(n_dims=n_dims, batch_size=batch_size, pool_dict=pool_dict, **kwargs)
+        self.thresh = thresh
+        self.high_penalty = high_penalty
+        self.loss_name = loss_name
+
+        
+    def clamped_mean_squared_error(self,ys_pred, ys):
+        return mean_squared_error_clamped(ys_pred, ys, thresh=self.thresh)
+
+    def clamped_thresh_hinge_loss(self, ys_pred, ys):
+        return thresh_hinge_loss(ys_pred, ys, thresh=self.thresh, high_penalty=self.high_penalty)
+            
+    def get_training_loss(self):
+        if (self.loss_name == 'hinge'):
+            return self.clamped_thresh_hinge_loss    
+        elif (self.loss_name == 'mean'):
+            return self.clamped_mean_squared_error
+        
+        print("Unknown loss function")
+        raise NotImplementedError
+        
     
 
 class KernelLinearRegression(LinearRegression):

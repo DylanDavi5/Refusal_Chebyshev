@@ -43,6 +43,7 @@ TASK_LIST = [
     "relu_2nn_regression",
     "decision_tree",
     "clamped_chebyshev",
+    "unclamped_chebyshev_clamped_loss",
 ]
 
 SAMPLE_LIST = [
