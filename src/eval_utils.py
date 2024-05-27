@@ -7,23 +7,62 @@ from samplers import get_data_sampler
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+from models import *
+from samplers import *
 
 from eval_constants import *
 
 import time
 
+
+# def plot_clamped_and_predicted(model):
+#     sampler = UniformSampler(n_dims=1)
+#     get_clamped_task = lambda : get_task_sampler( "clamped_chebyshev", 1, 1)()
+#     get_orig_task = lambda : get_task_sampler( "chebyshev_kernel_linear_regression", 1, 1)()
+
+#     num_xs_to_pred = 100
+
+#     xs_context = sampler.sample_xs((255,1))
+#     xs_to_pred = sampler.sample_xs((num_xs_to_pred,1))
+
+#     ys_clamped_context = clamped_task.evaluate(xs_context, noise=False, separate_noise=False)
+#     ys_clamped_to_pred = clamped_task.evaluate(xs_to_pred, noise=False, separate_noise=False)
+
+#     xs_gt, ys_gt = np.concatenate(xs_context.squeeze(-1), xs_to_pred.squeeze(-1)), np.concatenate(ys_clamped_context.squeeze(-1), ys_clamped_to_pred.squeeze(-1))
+
+#     # plot the grount truth clamped polynomial
+#     plt.plot(xs_gt, ys_gt, label="Ground Truth Clamped Polynomial")
+
+#     predicted_ys_on_context = []
+#     for i in range(0, num_xs_to_pred):
+#         xs = xs_context.squeeze(-1) + xs_to_pred[i]
+#         ys = ys_clamped_context.squeeze(-1) + ys_clamped_to_pred[i]
+#         pred = model(xs.unsqueeze(-1), ys.unsqueeze(-1))
+#         predicted_ys_on_context.append(pred)
+    
+#     plt.plot(xs_gt, predicted_ys_on_context, label="Predicted Clamped Polynomial")
+
+
+    
+
+
+
+
+
 def simpler_eval_batch(model, 
                use_clamped_y, 
                last_pt_above_thresh, 
                last_pt_use_clamped_y, 
+               lowest_degree=2,
+               highest_degree=2,
                window_len=256, 
                thresh=0.5,
                b_size=1, 
-               smoothing=0
+               smoothing=0,
     ):
     
-    get_clamped_task = lambda : get_task_sampler( "clamped_chebyshev", 1, b_size)()
-    get_orig_task = lambda : get_task_sampler( "chebyshev_kernel_linear_regression", 1, b_size)()
+    get_clamped_task = lambda : get_task_sampler( "clamped_chebyshev", 1, b_size, basis_dim=highest_degree, lowest_degree=lowest_degree, highest_degree=highest_degree)()
+    get_orig_task = lambda : get_task_sampler( "chebyshev_kernel_linear_regression", 1, b_size, basis_dim=highest_degree, lowest_degree=lowest_degree, highest_degree=highest_degree)()
     get_ds = lambda : get_data_sampler('gaussian', 1)
 
     if torch.cuda.is_available() and model.name.split("_")[0] in ["gpt2", "lstm"]:
@@ -44,47 +83,63 @@ def simpler_eval_batch(model,
             xs = data_sampler.sample_xs(n_points=window_len, b_size=b_size)
             ys_orig, ys_clamped = orig_task.evaluate(xs, noise=False, separate_noise=False), clamped_task.evaluate(xs, noise=False, separate_noise=False)
             
-            above_thresh_percentage = (torch.where(ys_clamped[0] == thresh)[0]).size(0) / ys_clamped[0].size(0)
-            below_thresh_percentage = (torch.where(ys_clamped[0] != thresh)[0]).size(0) / ys_clamped[0].size(0)
-            done = above_thresh_percentage>=0.25 and below_thresh_percentage>=0.1
+            if last_pt_above_thresh==True:
+                done = torch.where(ys_clamped[0]==thresh)[0].size(0) > 0
+            elif last_pt_above_thresh==False:
+                done = torch.where(ys_clamped[0]!=thresh)[0].size(0) > 0
+            else:
+                done = True
+
+            # above_thresh_percentage = (torch.where(ys_clamped[0] == thresh)[0]).size(0) / ys_clamped[0].size(0)
+            # below_thresh_percentage = (torch.where(ys_clamped[0] != thresh)[0]).size(0) / ys_clamped[0].size(0)
+            # assert below_thresh_percentage >=0.1
+            # done = above_thresh_percentage>=0.25 and below_thresh_percentage>=0.1
+            # done = above_thresh_percentage>=0.95
+    
 
 
-    xs, ys_clamped, ys_orig  = xs.squeeze(0).squeeze(-1), ys_clamped.squeeze(0), ys_orig.squeeze(0) # squeeze first dim = batch dim 
-    ys = ys_clamped if use_clamped_y else ys_orig
+        xs, ys_clamped, ys_orig  = xs.squeeze(0).squeeze(-1), ys_clamped.squeeze(0), ys_orig.squeeze(0) # squeeze first dim = batch dim 
+        ys = ys_clamped if use_clamped_y else ys_orig
 
 
-    # if we want the last pt above the threshold, switch it so that's the case
-    if last_pt_above_thresh == -1:
-        # hi = -1
-        # print("random last pt") 
-        if not use_clamped_y and last_pt_use_clamped_y:
-            ys[-1] = torch.tensor(thresh) if ys[-1]>thresh else ys[-1]
+        # if we want the last pt above the threshold, switch it so that's the case
+        if last_pt_above_thresh == -1:
+            # hi = -1
+            # print("random last pt") 
+            if not use_clamped_y and last_pt_use_clamped_y:
+                ys[-1] = torch.tensor(thresh) if ys[-1]>thresh else ys[-1]
 
-    elif last_pt_above_thresh == True:
-        above_thresh_indices = torch.where(ys_clamped == thresh)[0]
-        above_thresh_idx = above_thresh_indices[-1]
+        elif last_pt_above_thresh == True:
+            above_thresh_indices = torch.where(ys_clamped == thresh)[0]
+            above_thresh_idx = above_thresh_indices[-1]
 
-        if last_pt_use_clamped_y:
-            last_y = torch.tensor([ys_clamped[above_thresh_idx]])
-        else:
-            last_y = torch.tensor([ys_orig[above_thresh_idx]])
+            if last_pt_use_clamped_y:
+                last_y = torch.tensor([ys_clamped[above_thresh_idx]])
+            else:
+                last_y = torch.tensor([ys_orig[above_thresh_idx]])
 
-        try:
-            ys = torch.cat((ys_clamped[:above_thresh_idx], ys_clamped[above_thresh_idx+1:], last_y))
-            xs = torch.cat((xs[:above_thresh_idx], xs[above_thresh_idx+1:], torch.tensor([xs[above_thresh_idx]])))
-        except:
-            import pdb; pdb.set_trace()
-    elif last_pt_above_thresh == False:
-        below_thresh_indices = torch.where(ys_clamped != thresh)[0]
-        below_thresh_idx = below_thresh_indices[-1]
+            try:
+                ys = torch.cat((ys_clamped[:above_thresh_idx], ys_clamped[above_thresh_idx+1:], last_y))
+                xs = torch.cat((xs[:above_thresh_idx], xs[above_thresh_idx+1:], torch.tensor([xs[above_thresh_idx]])))
+            except:
+                import pdb; pdb.set_trace()
+        elif last_pt_above_thresh == False:
+            below_thresh_indices = torch.where(ys_clamped != thresh)[0]
+            below_thresh_idx = below_thresh_indices[-1]
 
-        last_y = torch.tensor([ys_orig[below_thresh_idx]])
+            last_y = torch.tensor([ys_orig[below_thresh_idx]])
 
-        ys = torch.cat((ys_clamped[:below_thresh_idx], ys_clamped[below_thresh_idx+1:], last_y))
-        xs = torch.cat((xs[:below_thresh_idx], xs[below_thresh_idx+1:], torch.tensor([xs[below_thresh_idx]])))
+            ys = torch.cat((ys_clamped[:below_thresh_idx], ys_clamped[below_thresh_idx+1:], last_y))
+            xs = torch.cat((xs[:below_thresh_idx], xs[below_thresh_idx+1:], torch.tensor([xs[below_thresh_idx]])))
+        # add back batch dim 
+        xs, ys = xs.unsqueeze(0).unsqueeze(-1), ys.unsqueeze(0)
+    else:
+        task = get_orig_task()
+        data_sampler = get_ds()
+        xs = data_sampler.sample_xs(n_points=window_len, b_size=b_size)
+        ys = task.evaluate(xs, noise=False, separate_noise=False)
 
-    # add back batch dim 
-    xs, ys = xs.unsqueeze(0).unsqueeze(-1), ys.unsqueeze(0)
+    
 
     pred = model(xs.to(device), ys.to(device)).detach()
 
@@ -92,9 +147,17 @@ def simpler_eval_batch(model,
     predictions = torch.zeros(len(perturbations), xs.shape[0], xs.shape[1])
     predictions = pred.cpu() 
 
-    predictions = predictions[:, window_len-1]
+    # predictions = predictions[:, window_len-1]
 
-    return ys[:,  window_len-1], predictions
+
+    # ridge predictions 
+    ridge_baseline = ChebyshevKernelLeastSquaresModelWithRidge(basis_dim=highest_degree, ridge=0.5)
+    pred_no_ridge = ridge_baseline.return_trained_model(xs[:, :-1, :], ys[:, :-1])(xs[:, -1, :])
+
+    return ys[:, window_len-1 ], predictions, pred_no_ridge
+
+
+# window_len-1
 
 def eval_batch(model, 
                percent_above_thresh=None, 
