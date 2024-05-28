@@ -1,4 +1,4 @@
-GPU = 2
+GPU = 0
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = str(GPU)
 from models import TransformerModel
