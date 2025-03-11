@@ -388,6 +388,11 @@ class NoisyLinearRegression(LinearRegression):
         return ys_b_noisy
 
 
+
+
+
+
+'''
 class QuadraticRegression(LinearRegression):
     def evaluate(self, xs_b):
         w_b = self.w_b.to(xs_b.device)
@@ -398,7 +403,8 @@ class QuadraticRegression(LinearRegression):
         ys_b_quad = self.scale * ys_b_quad
         return ys_b_quad
 
-
+        
+        
 class Relu2nnRegression(Task):
     def __init__(
         self,
@@ -459,6 +465,7 @@ class Relu2nnRegression(Task):
     @staticmethod
     def get_training_metric():
         return mean_squared_error
+
 
 
 class DecisionTree(Task):
@@ -533,3 +540,4 @@ class DecisionTree(Task):
     @staticmethod
     def get_training_metric():
         return mean_squared_error
+'''

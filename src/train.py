@@ -23,19 +23,6 @@ def train_step(model, xs, ys, optimizer, task):
     optimizer.zero_grad()
     output = model(xs, ys)
     l = task.get_training_loss()
-
-    '''
-    print(xs)
-    print(ys)
-    print(output)
-    print(xs.shape)
-    print(f"ys max is {max(ys)}")
-    print(ys.shape)
-    print(output.shape)
-    '''
-
-    #a = 0/0
-
     
     loss = l(output, ys)
     loss.backward()
@@ -167,6 +154,7 @@ def main(args):
         )
 
     model = build_model(args.model)
+    torch.cuda.set_device(args.gpu)
     model.cuda()
     model.train()
 
