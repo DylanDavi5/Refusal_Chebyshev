@@ -154,7 +154,7 @@ def main(args):
         )
 
     model = build_model(args.model)
-    torch.cuda.set_device(args.gpu)
+    torch.cuda.set_device(args.training.gpu)
     model.cuda()
     model.train()
 

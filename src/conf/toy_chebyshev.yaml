@@ -5,19 +5,20 @@ inherit:
 model:
     n_dims: 1
     n_positions: 41
-    n_embd: 256
-    n_head: 12
-    n_layer: 8
+    n_embd: 128
+    n_head: 8
+    n_layer: 4
 
 training:
-    #resume_id: 41aaaae1-d08d-4d35-ac04-9ec1bae355d7 #0c2fcb78-9b3e-4e82-bf45-c266e6e5d793
-    
-    task: kernel_linear_regression
+    resume_id: ecc58e0f-265b-44fa-a78e-5e57f408c9d6
+    gpu: 2
+
+    task: chebyshev_kernel_linear_regression
     data: uniform
     # task_kwargs: {"basis_dim": 11, "different_degrees": True, "lowest_degree": 1, "highest_degree": 11}
     task_kwargs: {"basis_dim": 11, "different_degrees": True, "lowest_degree": 1}
 
-    batch_size: 64
+    batch_size: 256
     learning_rate: 0.00005
     save_every_steps: 1000
     keep_every_steps: 100000
@@ -39,8 +40,8 @@ training:
             inc: 0
             interval: 500001
 
-out_dir: ../models/test #_clamp
+out_dir: ../models/chebyshev_base_standard #_clamp
 
 
 wandb:
-    name: "chebyshev_linear_regression_toy"
+    name: "chebyshev_base_model_standard"

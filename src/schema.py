@@ -44,6 +44,7 @@ TASK_LIST = [
     "decision_tree",
     "clamped_chebyshev",
     "unclamped_chebyshev_clamped_loss",
+    "chebyshev_kernel_linear_regression",
 ]
 
 SAMPLE_LIST = [
@@ -57,7 +58,7 @@ training_schema = {
     "num_tasks": merge(tinteger, nullable, default(None)),
     "num_training_examples": merge(tinteger, nullable, default(None)),
     "data": merge(tstring, allowed(SAMPLE_LIST)),
-    "gpu": merge(tinteger, required),
+    "gpu": merge(tinteger, required), #gpu number
     "batch_size": merge(tinteger, default(64)),
     "learning_rate": merge(tfloat, default(3e-4)),
     "train_steps": merge(tinteger, default(1000)),
@@ -68,8 +69,8 @@ training_schema = {
 }
 
 wandb_schema = {
-    "project": merge(tstring, default("alignment")),
-    "entity": merge(tstring, default("rdoshi21")),
+    "project": merge(tstring, default("")),
+    "entity": merge(tstring, default("")),
     "notes": merge(tstring, default("")),
     "name": merge(tstring, nullable, default(None)),
     "log_every_steps": merge(tinteger, default(10)),
