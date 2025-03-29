@@ -38,18 +38,37 @@ def sample_seeds(total_seeds, count):
 
 
 def train(model, args):
+    device = torch.device(f"cuda:{args.training.gpu}")
+    print(f"using device {device}")
     optimizer = torch.optim.Adam(model.parameters(), lr=args.training.learning_rate)
     curriculum = Curriculum(args.training.curriculum)
 
     starting_step = 0
     state_path = os.path.join(args.out_dir, "state.pt")
+
+    #must specify the specific checkpoint to start training from
+    base_model_path = os.path.join(args.alignment.base_model)
+
+    #If we are already training a model with the given run id then we continue training
     if os.path.exists(state_path):
-        state = torch.load(state_path)
+        print(f"continuing run from {state_path}")
+
+        state = torch.load(state_path, map_location=f'cuda:{args.training.gpu}')
         model.load_state_dict(state["model_state_dict"])
         optimizer.load_state_dict(state["optimizer_state_dict"])
         starting_step = state["train_step"]
         for i in range(state["train_step"] + 1):
             curriculum.update()
+    
+    #if the state path doesn't exist, but their is a base model then we are starting a finetune
+    elif os.path.exists(base_model_path):
+        print(f"Starting fine-tuning from {base_model_path}")
+        
+        state = torch.load(base_model_path, f'cuda:{args.training.gpu}') 
+        model.load_state_dict(state)
+
+
+    
 
     n_dims = model.n_dims
     bsize = args.training.batch_size
@@ -60,12 +79,14 @@ def train(model, args):
         bsize,
         num_tasks=args.training.num_tasks,
         curriculum=curriculum,
+        device=device,
         **args.training.task_kwargs,
     )
     pbar = tqdm(range(starting_step, args.training.train_steps))
 
     num_training_examples = args.training.num_training_examples
 
+    
     for i in pbar:
         data_sampler_args = {}
         task_sampler_args = {}
@@ -81,18 +102,22 @@ def train(model, args):
         xs = data_sampler.sample_xs(
             curriculum.n_points,
             bsize,
-            curriculum.n_dims_truncated,
+            device = device,
+            n_dims_truncated = curriculum.n_dims_truncated,
             **data_sampler_args,
         )
         task = task_sampler(**task_sampler_args)
         ys = task.evaluate(xs)
 
 
-        loss, output = train_step(model, xs.cuda(), ys.cuda(), optimizer, task)
+        
+        xs = xs.to(device)
+        ys = ys.to(device)
+        loss, output = train_step(model, xs, ys, optimizer, task)
 
         point_wise_tags = list(range(curriculum.n_points))
         point_wise_loss_func = task.get_metric()
-        point_wise_loss = point_wise_loss_func(output, ys.cuda()).mean(dim=0)
+        point_wise_loss = point_wise_loss_func(output, ys.to(output.device)).mean(dim=0)
 
         baseline_loss = (
             sum(
@@ -108,7 +133,7 @@ def train(model, args):
                     "overall_loss": loss,
                     "excess_loss": loss / baseline_loss,
                     "pointwise/loss": dict(
-                        zip(point_wise_tags, point_wise_loss.cpu().numpy())
+                        zip(point_wise_tags, point_wise_loss.detach().cpu().numpy())
                     ),
                     "n_points": curriculum.n_points,
                     "n_dims": curriculum.n_dims_truncated,
@@ -141,7 +166,7 @@ def main(args):
         curriculum_args = args.training.curriculum
         curriculum_args.points.start = curriculum_args.points.end
         curriculum_args.dims.start = curriculum_args.dims.end
-        args.training.train_steps = 100
+        args.training.train_steps = 100000
     else:
         wandb.init(
             dir=args.out_dir,
@@ -154,8 +179,8 @@ def main(args):
         )
 
     model = build_model(args.model)
-    torch.cuda.set_device(args.training.gpu)
-    model.cuda()
+    device = torch.device(f"cuda:{args.training.gpu}")
+    model.to(device)
     model.train()
 
     train(model, args)
@@ -165,6 +190,11 @@ def main(args):
 
 
 if __name__ == "__main__":
+    torch.set_num_threads(4)  # Set this to the number of threads you want
+    torch.set_num_interop_threads(4)
+    
+    
+    
     parser = QuinineArgumentParser(schema=schema)
     args = parser.parse_quinfig()
     assert args.model.family in ["gpt2", "lstm"]

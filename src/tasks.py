@@ -1,8 +1,6 @@
 import math
 
 import torch
-
-import numpy as np
 import numpy as np
 from models import *
 
@@ -30,7 +28,7 @@ def thresh_hinge_loss(ys_pred, ys, thresh, high_penalty=100):
     return total_loss
 
 def accuracy(ys_pred, ys):
-    return (ys == ys_pred.sign()).float()
+    return ys.eq(ys_pred.sign()).float()
 
 
 sigmoid = torch.nn.Sigmoid()
@@ -68,13 +66,13 @@ class Task:
 
 
 def get_task_sampler(
-    task_name, n_dims, batch_size, pool_dict=None, num_tasks=None, **kwargs
+    task_name, n_dims, batch_size, device="cpu", pool_dict=None, num_tasks=None, **kwargs
 ):
     task_names_to_classes = {
         "linear_regression": LinearRegression,
-        "sparse_linear_regression": SparseLinearRegression,
-        "linear_classification": LinearClassification,
-        "noisy_linear_regression": NoisyLinearRegression,
+        #"sparse_linear_regression": SparseLinearRegression,
+        #"linear_classification": LinearClassification,
+        #"noisy_linear_regression": NoisyLinearRegression,
         "kernel_linear_regression": ChebyshevKernelLinearRegression,
         "chebyshev_kernel_linear_regression": ChebyshevKernelLinearRegression,
         "clamped_chebyshev":ClampedChebyshev,
@@ -86,7 +84,7 @@ def get_task_sampler(
             if pool_dict is not None:
                 raise ValueError("Either pool_dict or num_tasks should be None.")
             pool_dict = task_cls.generate_pool_dict(n_dims, num_tasks, **kwargs)
-        return lambda **args: task_cls(n_dims, batch_size, pool_dict, **args, **kwargs)
+        return lambda **args: task_cls(n_dims, batch_size, device, pool_dict, **args, **kwargs)
     else:
         print("Unknown task")
         raise NotImplementedError
@@ -133,7 +131,7 @@ class LinearRegression(Task):
         return mean_squared_error
 
 class ChebyshevKernelLinearRegression(Task):
-    def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, scale=1, basis_dim=1, different_degrees=False, lowest_degree=1, highest_degree=11, curriculum=None):
+    def __init__(self, n_dims, batch_size, device="cpu", pool_dict=None, seeds=None, scale=1, basis_dim=1, different_degrees=False, lowest_degree=1, highest_degree=11, curriculum=None):
         """scale: a constant by which to scale the randomly sampled weights."""
         super(ChebyshevKernelLinearRegression, self).__init__(n_dims=n_dims, batch_size=batch_size, pool_dict=pool_dict, seeds=seeds)
         self.basis_dim = basis_dim
@@ -141,6 +139,7 @@ class ChebyshevKernelLinearRegression(Task):
         self.highest_degree = highest_degree
         self.diff_poly_degree = different_degrees 
         self.lowest_degree = lowest_degree
+        self.device = device
         self.chebyshev_coeffs = torch.tensor([
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -154,15 +153,16 @@ class ChebyshevKernelLinearRegression(Task):
             [0, 9, 0, -120, 0, 432, 0, -576, 0, 256, 0, 0],
             [-1, 0, 50, 0, -400, 0, 1120, 0, -1280, 0, 512, 0],
             [0, -11, 0, 220, 0, -1232, 0, 2816, 0, -2816, 0, 1024]
-        ], dtype=torch.float)
+        ], dtype=torch.float, device = self.device)
         
         self.chebyshev_coeffs = self.chebyshev_coeffs[:self.basis_dim + 1, :self.basis_dim + 1]
-        combinations = torch.randn(size=(self.b_size, self.basis_dim + 1))
+        combinations = torch.randn(size=(self.b_size, self.basis_dim + 1), device = self.device)
+
         if self.diff_poly_degree:
-            mask = torch.ones(combinations.shape[0], combinations.shape[-1], dtype=torch.float32)
+            mask = torch.ones(combinations.shape[0], combinations.shape[-1], dtype=torch.float32, device = self.device)
             if curriculum:
                 self.highest_degree = curriculum.highest_degree
-            indices = torch.randint(self.lowest_degree, self.highest_degree + 1, (combinations.shape[0], 1))    # Note the dimensions
+            indices = torch.randint(self.lowest_degree, self.highest_degree + 1, (combinations.shape[0], 1), device = self.device)    # Note the dimensions
             self.indices = indices
             mask[torch.arange(0, combinations.shape[-1], dtype=torch.float32).repeat(combinations.shape[0],1) >= indices] = 0
             combinations = torch.mul(combinations, mask)
@@ -170,20 +170,20 @@ class ChebyshevKernelLinearRegression(Task):
         self.w_b = (combinations @ self.chebyshev_coeffs).unsqueeze(2)
 
     def evaluate(self, xs_b, noise=False, separate_noise=False, noise_variance=0.2):
-        expanded_basis = torch.zeros(*xs_b.shape[:-1], xs_b.shape[-1]*(self.basis_dim + 1))
+        expanded_basis = torch.zeros(*xs_b.shape[:-1], xs_b.shape[-1]*(self.basis_dim + 1), device=xs_b.device)
         for i in range(self.basis_dim + 1): #we are also adding the constant term
             expanded_basis[..., i*xs_b.shape[-1]:(i+1)*xs_b.shape[-1]] = xs_b**i
-        expanded_basis.to(xs_b.device)        
+
         w_b = self.w_b.to(xs_b.device)
         ys_b = (expanded_basis @ w_b)[:, :, 0]
 
         if noise and not separate_noise:
-            return ys_b + math.sqrt(noise_variance) * torch.randn_like(ys_b)
+            return ys_b + torch.sqrt(torch.tensor(noise_variance, device=xs_b.device)) * torch.randn_like(ys_b, device=xs_b.device)
         elif noise and separate_noise:
-            return ys_b, math.sqrt(noise_variance) * torch.randn_like(ys_b)
+            return ys_b, torch.sqrt(torch.tensor(noise_variance, device=xs_b.device)) * torch.randn_like(ys_b, device=xs_b.device)
         else:
             if separate_noise:
-                return ys_b, torch.zeros_like(ys_b)
+                return ys_b, torch.zeros_like(ys_b, device=xs_b.device)
             else:
                 return ys_b
 
@@ -200,20 +200,20 @@ class ChebyshevKernelLinearRegression(Task):
     
 
 class ClampedChebyshev(ChebyshevKernelLinearRegression):
-    def __init__(self, n_dims, batch_size, pool_dict, thresh=0.5, loss_name='mse', high_penalty=100, **kwargs):
+    def __init__(self, n_dims, batch_size, pool_dict, device="cpu", thresh=0.5, loss_name='mse', high_penalty=100, **kwargs):
         self.thresh = thresh
         self.high_penalty = high_penalty
         self.loss_name = loss_name
 
-        super(ClampedChebyshev, self).__init__(n_dims=n_dims, batch_size=batch_size, pool_dict=pool_dict, **kwargs)
+        super(ClampedChebyshev, self).__init__(n_dims=n_dims, batch_size=batch_size, pool_dict=pool_dict, device=device, **kwargs)
         
 
     def evaluate(self, xs_b, noise=False, separate_noise=False, noise_variance=0.2):
-        expanded_basis = torch.zeros(*xs_b.shape[:-1], xs_b.shape[-1]*(self.basis_dim + 1))
+        expanded_basis = torch.zeros(*xs_b.shape[:-1], xs_b.shape[-1]*(self.basis_dim + 1), device=xs_b.device)
         for i in range(self.basis_dim + 1): #we are also adding the constant term
             expanded_basis[..., i*xs_b.shape[-1]:(i+1)*xs_b.shape[-1]] = xs_b**i
-        expanded_basis.to(xs_b.device)        
-        w_b = self.w_b.to(xs_b.device)
+               
+        w_b = self.w_b
         ys_b = (expanded_basis @ w_b)[:, :, 0]
         
         #limit the outputs
@@ -235,10 +235,10 @@ class ClampedChebyshev(ChebyshevKernelLinearRegression):
     def get_training_loss(self):
         return self.clamped_thresh_hinge_loss if self.loss_name == 'hinge' else mean_squared_error
     
-#generate normalchebyshev points for the context but evaluate the loss on a clamped chebyshev
+#generate normal chebyshev points for the context but evaluate the loss on a clamped chebyshev
 class ChebyshevLossClamped(ChebyshevKernelLinearRegression):
-    def __init__(self, n_dims, batch_size, pool_dict, thresh=0.5, loss_name='mean', high_penalty=100, **kwargs):
-        super(ChebyshevLossClamped, self).__init__(n_dims=n_dims, batch_size=batch_size, pool_dict=pool_dict, **kwargs)
+    def __init__(self, n_dims, batch_size, pool_dict, device="cpu", thresh=0.5, loss_name='mean', high_penalty=100, **kwargs):
+        super(ChebyshevLossClamped, self).__init__(n_dims=n_dims, batch_size=batch_size, pool_dict=pool_dict, device=device, **kwargs)
         self.thresh = thresh
         self.high_penalty = high_penalty
         self.loss_name = loss_name
@@ -260,6 +260,15 @@ class ChebyshevLossClamped(ChebyshevKernelLinearRegression):
         raise NotImplementedError
         
     
+
+
+
+
+
+
+
+
+'''
 
 class KernelLinearRegression(LinearRegression):
     def __init__(self, n_dims, batch_size, pool_dict=None, seeds=None, scale=1, basis_dim=1): #TODO only supports axis alligned 
@@ -387,9 +396,6 @@ class NoisyLinearRegression(LinearRegression):
 
 
 
-
-
-'''
 class QuadraticRegression(LinearRegression):
     def evaluate(self, xs_b):
         w_b = self.w_b.to(xs_b.device)

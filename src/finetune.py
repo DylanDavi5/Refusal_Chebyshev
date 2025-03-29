@@ -196,7 +196,7 @@ if __name__ == "__main__":
 
         out_dir = os.path.join(args.out_dir, run_id)
         base_model = os.path.join(args.alignment.base_model, "state.pt")
-        #base_model = '/home/riadoshi/alignment/Alignment/models/train_multiple/0206e01d-0100-47d8-8086-1495d6443a55/state.pt'
+        
         #check the base model exists or we already have a model we are in the process of finetuning
         assert os.path.exists(base_model) or os.path.exists(out_dir)
 

@@ -63,13 +63,15 @@ class GaussianSampler(DataSampler):
             xs_b[:, :, n_dims_truncated:] = 0
         return xs_b #increasing the variance to sample from N(0, 4I), will see if this breaks performance
 
+
+
 class UniformSampler(DataSampler):
     def __init__(self, n_dims, start=-1, end=1):
         super().__init__(n_dims)
         self.start = start
         self.end = end
 
-    def sample_xs(self, n_points, b_size, n_dims_truncated=None, seeds=None):
-        xs_b = 2*torch.rand(b_size, n_points, self.n_dims) - 1
+    def sample_xs(self, n_points, b_size, device="cpu", n_dims_truncated=None, seeds=None):
+        xs_b = 2 * torch.rand(b_size, n_points, self.n_dims, device=device) - 1
         assert torch.min(xs_b) >= -1 and torch.max(xs_b) <= 1
         return xs_b #increasing the variance to sample from N(0, 4I), will see if this breaks performance

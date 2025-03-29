@@ -10,7 +10,7 @@ model:
     n_layer: 4
 
 training:
-    resume_id: ecc58e0f-265b-44fa-a78e-5e57f408c9d6
+    resume_id: 
     gpu: 2
 
     task: chebyshev_kernel_linear_regression

@@ -3,26 +3,24 @@ inherit:
     - wandb.yaml
 
 model:
-    #family: gpt2
-    #n_dims: 1
     n_embd: 128
-    n_head: 4
-    n_layer: 6
+    n_head: 8
+    n_layer: 4
     #n_positions: 41
     n_dims: 1
     n_positions: 41
 
 training:
-    #resume_id: go_time
-    
-    task: unclamped_chebyshev_clamped_loss #clamped_chebyshev
+    resume_id: first_finetune_run
+    gpu: 1
+    task: unclamped_chebyshev_clamped_loss 
     data: uniform
     # task_kwargs: {"basis_dim": 11, "different_degrees": True, "lowest_degree": 1, "highest_degree": 11}
     task_kwargs: {"basis_dim": 11, "different_degrees": True, "lowest_degree": 1}
     
-    batch_size: 64
-    learning_rate: 0.00005
-    save_every_steps: 50000
+    batch_size: 256
+    learning_rate: 5.0e-05
+    save_every_steps: 5000
     keep_every_steps: 50000
     train_steps: 5000001
     curriculum:
@@ -30,12 +28,12 @@ training:
             start: 1
             end: 1
             inc: 1
-            interval: 2000
+            interval: 20000
         points:
-            start: 5
+            start: 41
             end: 41
-            inc: 1
-            interval: 1000
+            inc: 0
+            interval: 10000
         deg: 
             start: 11
             end: 11
@@ -43,13 +41,15 @@ training:
             interval: 500001
 
 
-out_dir: ../models/finetune_hinge
+out_dir: ../models/finetune_chebyshev_standard_clamped_loss
 
 
 alignment:
-    base_model: ../models/train_multiple/b05b7728-6121-4fca-af23-d2b4cc00b027 #/home/riadoshi/alignment/prev/ckpts/ckpt/ #../models/test/5ea2b0cc-ab96-4844-be2f-21589e2283fc #../models/model1
+    base_model: ../models/chebyshev_base_standard/ecc58e0f-265b-44fa-a78e-5e57f408c9d6/model_1000000.pt
 
 wandb:
-    name: "chebyshev_linear_regression_toy"
+    name: "chebyshev_linear_regression_finetune"
     #project: test
     #entity: dyly-davis
+
+test_run: False
