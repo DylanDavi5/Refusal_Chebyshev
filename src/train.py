@@ -44,7 +44,7 @@ def train(model, args):
     curriculum = Curriculum(args.training.curriculum)
 
     starting_step = 0
-    state_path = os.path.join(args.out_dir, "state.pt")
+    state_path = os.path.join(args.out_dir, "checkpoints/state.pt")
 
     #must specify the specific checkpoint to start training from
     base_model_path = os.path.join(args.alignment.base_model)
@@ -158,7 +158,7 @@ def train(model, args):
             and not args.test_run
             and i > 0
         ):
-            torch.save(model.state_dict(), os.path.join(args.out_dir, f"model_{i}.pt"))
+            torch.save(model.state_dict(), os.path.join(args.out_dir, f"checkpoints/model_{i}.pt"))
 
 
 def main(args):

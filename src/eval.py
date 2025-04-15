@@ -8,7 +8,9 @@ import pandas as pd
 from tqdm import tqdm
 import torch
 import yaml
+import argparse
 
+#from experiments import eval_checkpoints
 import models
 from samplers import get_data_sampler, sample_transformation
 from tasks import get_task_sampler
@@ -23,12 +25,13 @@ def get_model_from_run(run_path, step=-1, only_conf=False):
 
     model = models.build_model(conf.model)
 
+    checkpoint_path = os.path.join(run_path, "checkpoints")
     if step == -1:
-        state_path = os.path.join(run_path, "state.pt")
+        state_path = os.path.join(checkpoint_path, "state.pt")
         state = torch.load(state_path)
         model.load_state_dict(state["model_state_dict"])
     else:
-        model_path = os.path.join(run_path, f"model_{step}.pt")
+        model_path = os.path.join(checkpoint_path, f"model_{step}.pt")
         state_dict = torch.load(model_path)
         model.load_state_dict(state_dict)
 
@@ -459,6 +462,39 @@ def read_run_dir(run_dir):
     return df
 
 if __name__ == "__main__":
+    print("not implemented")
+    '''
+    parser = argparse.ArgumentParser(description='Determine what evals to run')
+
+    parser.add_argument('--run_dir', type=str, help='directory of model run')
+    #parser.add_argument('--experiment_name', type=str, help='name of the experiment to run')
+    parser.add_argument('--eval_checkpoints', help='Boolean. only run the beginning evals', action='store_true')
+
+    
+    # Parse the arguments
+    args = parser.parse_args()
+
+    #print("experiment name arg", args.experiment_name)
+    #experiment = args.experiment_name
+
+    print("run_dir name arg", args.run_dir)
+    run_dir = args.run_dir
+    print("eval_checkpoints name arg", args.eval_checkpoints)
+    eval_ckpts = args.eval_checkpoints
+
+    if eval_ckpts and run_dir:
+        print(f"\n\nEvaluating model checkpoints from {run_dir}")
+        
+        fig, _ = eval_checkpoints(run_dir)
+        plot_dir = os.path.join(run_dir, "figures")
+        
+        if not os.path.exists(plot_dir):
+            os.makedirs(plot_dir)
+
+        fig.savefig(os.path.join(plot_dir, "model_checkpoints.pdf"))
+
+
+    
     run_dir = sys.argv[1]
     for task in os.listdir(run_dir):
         task_dir = os.path.join(run_dir, task)
@@ -466,3 +502,4 @@ if __name__ == "__main__":
         for run_id in tqdm(os.listdir(task_dir)):
             run_path = os.path.join(run_dir, task, run_id)
             metrics = get_run_metrics(run_path)
+    '''
